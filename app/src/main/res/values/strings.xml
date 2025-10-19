@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">SentiLight</string>
+
+    <string name="instruction_text">음성 인식을 시작하려면 버튼을 누르세요.</string>
+    <string name="button_start">음성 인식 시작</string>
+    <string name="button_stop">음성 인식 중지</string>
+    <string name="initial_result_text">인식 결과가 여기에 표시됩니다.</string>
+
+    <string name="status_listening">말씀해주세요...</string>
+    <string name="status_processing">처리 중...</string>
+    <string name="error_mic_permission">마이크 권한이 필요합니다.</string>
+    <string name="error_asr_not_available">음성 인식 서비스가 지원되지 않습니다.</string>
+</resources>
