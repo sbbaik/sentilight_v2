@@ -1,6 +1,7 @@
 package com.baiktown.sentilight;
 
 import android.Manifest;
+// ... (기존 import 유지) ...
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -19,8 +20,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.ColorFilter;
 
 // 💡 Lottie/Android Color Filter Imports (Modified)
-import android.graphics.PorterDuff; // 🌟 추가: PorterDuff Mode를 사용하기 위해
-import android.graphics.PorterDuffColorFilter; // 🌟 SimpleLottieColorFilter 대신 사용
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.airbnb.lottie.model.KeyPath;
@@ -146,23 +147,42 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
         updateModeButton(tasmotaController.isSimulating());
     }
+// -------------------------------------------------------------
+// 🌟 FIX: 색상 처리 로직을 보색 대신 세련된 대비색으로 변경 🌟
+// -------------------------------------------------------------
 
-    // 💡 보색을 계산하는 헬퍼 함수 추가
-    private int getComplementaryColor(int color) {
-        // 알파 채널은 그대로 유지하고, RGB만 반전
-        int alpha = Color.alpha(color);
-        int red = 255 - Color.red(color);
-        int green = 255 - Color.green(color);
-        int blue = 255 - Color.blue(color);
-        return Color.argb(alpha, red, green, blue);
+    /**
+     * 배경색(color)과 대비되면서도 세련된(고채도 또는 고명도) Lottie 색상 필터 색상을 계산합니다.
+     * 완전 보색은 촌스럽기 때문에, Hue는 보색으로 유지하되, 채도(Saturation)와 명도(Value)를 조작합니다.
+     * @param color 배경색 (int RGB)
+     * @return 대비되는 필터 색상 (int RGB)
+     */
+    private int getContrastingColor(int color) {
+        float[] hsv = new float[3];
+        Color.colorToHSV(color, hsv);
+
+        // 1. Hue (색조)를 보색(180도 회전)으로 설정합니다.
+        float complementaryHue = (hsv[0] + 180) % 360;
+
+        // 2. Saturation (채도) 조절: 배경색의 채도와 상관없이 Lottie 색상의 채도를 높여 시인성을 확보합니다.
+        // 배경색의 채도가 낮을 경우: Lottie는 채도를 높게 (0.95) 설정하여 화사하게 만듭니다.
+        // 배경색의 채도가 높을 경우: Lottie도 채도를 약간 낮게 (0.75) 설정하여 너무 강한 대비를 피합니다.
+        float contrastingSaturation = hsv[1] < 0.5f ? 0.95f : 0.75f;
+
+        // 3. Value (명도) 조절: 어두운 배경색에서 Lottie를 밝게, 밝은 배경색에서 Lottie를 어둡게 만듭니다.
+        // 배경색이 어두울 경우 (명도 < 0.5): Lottie는 밝게 (0.95) 설정하여 시인성 극대화.
+        // 배경색이 밝을 경우 (명도 >= 0.5): Lottie는 어둡게 (0.25) 설정하여 시인성 확보.
+        float contrastingValue = hsv[2] < 0.5f ? 0.95f : 0.25f;
+
+        // 최종 HSV 배열 생성 및 ARGB로 변환
+        return Color.HSVToColor(Color.alpha(color), new float[]{complementaryHue, contrastingSaturation, contrastingValue});
     }
 
-    // 💡 Lottie 색상 필터를 적용/제거하는 함수 추가
+    // 💡 Lottie 색상 필터를 적용/제거하는 함수 수정
     private void setLottieColorFilter(int color) {
-        // Lottie 5.0.0 이후 버전에서는 PorterDuffColorFilter 사용
         ColorFilter filter = color == INITIAL_BACKGROUND_COLOR
                 ? null // 초기화 시 null을 전달하여 필터 제거
-                : new PorterDuffColorFilter(getComplementaryColor(color), PorterDuff.Mode.SRC_ATOP); // 🌟 변경된 필터 사용
+                : new PorterDuffColorFilter(getContrastingColor(color), PorterDuff.Mode.SRC_ATOP); // 🌟 getContrastingColor 사용
 
         LottieValueCallback<ColorFilter> colorFilterCallback = new LottieValueCallback<>(filter);
 
@@ -173,8 +193,11 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             colorFilterCallback
         );
     }
+// -------------------------------------------------------------
+// 🌟 나머지 코드는 변경 없이 유지됩니다. 🌟
+// -------------------------------------------------------------
 
-    // 💡 lightContainer 배경색을 안전하게 변경하는 함수 추가
+    // 💡 lightContainer 배경색을 안전하게 변경하는 함수 유지
     private void setLightContainerColor(int colorRgb) {
         if (lightContainer == null) return;
 
@@ -285,7 +308,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                     lottieAnimationView.cancelAnimation();
                     lottieAnimationView.setVisibility(View.INVISIBLE);
 
-                    // 🌟 lightContainer 배경색 변경 및 Lottie 보색 적용 🌟
+                    // 🌟 lightContainer 배경색 변경 및 Lottie 대비색 적용 🌟
                     setLightContainerColor(colorRgb);
                     setLottieColorFilter(colorRgb);
 
